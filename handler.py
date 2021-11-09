@@ -11,6 +11,10 @@ class ResponseHandler:
         self.socket = soc
         self.anime_root_path = anime_root_path
 
+
+    def distribute(self):
+        pass
+
     def send_dir_info(self):
         dirs = os.listdir(self.anime_root_path)
         dir_dict = {"dirs": dict()}
