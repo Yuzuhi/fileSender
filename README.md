@@ -1,39 +1,57 @@
-# fileSender
-- 利用tkinter模块编写Python语言的GUI程序，通过tcp通信的方式来发送文件。
+## fileSender
+
+使用tkinter开发的基于socket通信的接受视频文件客户端
+
+### 配置文件
 
 ## 数据格式定义
 
-### Request
-
 ****
 
-#### get_dir_list
+#### 获取文件夹信息
+
+get_dirs 获取服务器上的所有视频文件夹信息
+
+#### Request
+
+- head
 
 ```json
 {
-  "command": "getDirList",
+  "command": "getDirs",
+  "code": 0,
+  "msgSize": 0
+}
+```
+
+- body
+
+```json
+{
+  "command": "getDirs",
   "code": 0
 }
 ```
 
-****
+#### Response
 
-#### dir_list_head
+- head
 
 ```json
 {
-  "dirNumbers": 0,
-  "infoSize": 0
+  "command": "getDirs",
+  "code": 0,
+  "msgSize": 0
 }
-
 ```
 
-#### get_dir_list
+- body
 
 ```json
 {
+  "command": "getDirs",
+  "code": 200,
   "dirNumbers": 0,
-  "fileSize": 0,
   "dirs": {
     "dir1": {
       "dirName": "",
@@ -48,11 +66,123 @@
 
 ```
 
-#### send_anime
+#### 获取文件信息
+
+get_videos 获取一个文件夹内的所有文件信息
+
+#### Request
+
+- head
 
 ```json
 {
-  "animeName": "",
-  "animeSize": 0
+  "command": "getVideos",
+  "code": 1,
+  "msgSize": 0
+}
+```
+
+- body
+
+```json
+{
+  "command": "getVideos",
+  "code": 1,
+  "dirNumber": 0,
+  "dirName": [
+    "dirName"
+  ]
+}
+```
+
+#### Response
+
+- head
+
+```json
+{
+  "command": "getVideos",
+  "code": 200,
+  "msgSize": 0
+}
+```
+
+- body
+
+```json
+{
+  "command": "getVideos",
+  "code": 200,
+  "dirNumber": 0,
+  "dirs": {
+    "videos": {
+      "videoNumber": 0,
+      "video1": {
+        "videoName": "",
+        "videoImage": ""
+      },
+      "video2": {
+        "videoName": "",
+        "videoImage": ""
+      }
+    }
+  }
+}
+```
+
+#### 下载视频文件
+
+下载单个视频文件
+
+#### Request
+
+- head
+
+```json
+{
+  "command": "download",
+  "code": 2,
+  "msgSize": 0
+}
+```
+
+- body
+
+```json
+{
+  "command": "download",
+  "code": 2,
+  "videoDir": "",
+  "videoName": ""
+}
+```
+
+#### Response
+
+- head
+
+```json
+{
+  "command": "download",
+  "code": 200,
+  "msgSize": 0
+}
+```
+
+- body
+
+```json
+{
+  "videoNumber": 0,
+  "videos": {
+    "video1": {
+      "name": "",
+      "size": ""
+    },
+    "video2": {
+      "name": "",
+      "size": ""
+    }
+  }
 }
 ```
