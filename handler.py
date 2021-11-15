@@ -6,46 +6,46 @@ import sys
 from typing import Dict, List
 
 from constant import *
+from exceptions import DisconnectionException
 from utils import to_bytes
 
 
 class ResponseHandler:
 
-    def __init__(self, soc: socket.socket, video_root_path: str):
-        self.socket = soc
+    def __init__(self, video_root_path: str):
         self.video_root_path = video_root_path
 
-    def distribute(self, head_len: bytes):
+    def distribute(self, conn: socket.socket, head_len: bytes):
         """
         根据客户端发来的头部信息来分发至处理该信息的相关函数
+        :param conn:
         :param head_len:
         :return:
         """
 
         head_len = struct.unpack('i', head_len)[0]
-        head_info = self.socket.recv(head_len)
-        print("收到消息：", head_info)
-        if not head_len:
-            raise socket.error
+        head_info = conn.recv(head_len)
+        if not head_info:
+            raise DisconnectionException
 
         head_info = json.loads(head_info.decode('utf-8'))
         code = head_info["code"]
 
         request_body_len = head_info["msgSize"]
-        request_body = self.socket.recv(request_body_len)
+        request_body = conn.recv(request_body_len)
         if not request_body:
-            raise socket.error
+            raise DisconnectionException
 
         request_body = json.loads(request_body.decode('utf-8'))
 
         if code == GET_DIRS_COMMAND:
-            self.dirs_info_response(request_body)
+            self.dirs_info_response(conn, request_body)
 
         elif code == GET_FILES_COMMAND:
-            self.video_info_response(request_body)
+            self.video_info_response(conn, request_body)
 
         elif code == DOWNLOAD_COMMAND:
-            self.send_video_response(request_body)
+            self.send_video_response(conn, request_body)
         else:
             return
 
@@ -79,9 +79,10 @@ class ResponseHandler:
 
         return head_info, response_body
 
-    def dirs_info_response(self, request_body: dict):
+    def dirs_info_response(self, conn: socket.socket, request_body: dict):
         """
         发送服务器资源根目录下的所有视频文件夹信息
+        :param conn:
         :param request_body:
         :return:
         """
@@ -93,10 +94,10 @@ class ResponseHandler:
         if not head_info:
             return
 
-        self._send_head_info(head_info)
+        self._send_head_info(conn, head_info)
         response_body = json.dumps(response_body).encode('utf-8')
         print("发送response_body:", response_body)
-        self.socket.send(response_body)
+        conn.send(response_body)
 
     def _get_video_info(self, video_file_list: List[str]) -> dict:
         """发送每个文件夹内的剧集信息"""
@@ -115,20 +116,21 @@ class ResponseHandler:
             video_file = os.path.join(self.video_root_path, video_dir)
 
             for _, _, files in os.walk(video_file):
-                dirs[video_dir]["fileNumber"] = len(files)
+                dirs[video_dir]["videoNumber"] = len(files)
                 for file in files:
                     dirs[video_dir][file] = {
-                        "fileName": file,
-                        "fileImage": ""
+                        "videoName": file,
+                        "videoImage": ""
                     }
 
         response_body["dirs"] = dirs
 
         return response_body
 
-    def video_info_response(self, request_body: dict):
+    def video_info_response(self, conn: socket.socket, request_body: dict):
         """
         根据请求的视频文件夹名发送服务器上的该视频文件夹下的文件信息
+        :param conn:
         :param request_body:
         :return:
         """
@@ -139,46 +141,55 @@ class ResponseHandler:
 
         response_body = to_bytes(**video_dict)
 
-        head_info = to_bytes(
-            command="getFiles",
+        header_info = to_bytes(
+            command="getVideos",
             code=GET_FILES_COMMAND,
             msgSize=sys.getsizeof(response_body)
         )
 
-        self._send_head_info(head_info)
-        self.socket.send(response_body)
+        self._send_head_info(conn, header_info)
+        conn.send(response_body)
 
-    def _send_head_info(self, head_info: bytes):
+    def _send_head_info(self, conn: socket.socket, head_info: bytes):
 
         head_info_len = struct.pack("i", len(head_info))
-        self.socket.send(head_info_len)
+        conn.send(head_info_len)
 
         try:
-            self.socket.send(head_info)
+            conn.send(head_info)
         except Exception:
-            self._send_error_code()
+            self._send_error_code(conn)
 
-    def send_video_response(self, request_body: dict):
+    def send_video_response(self, conn: socket.socket, request_body: dict):
         """发送客户端所请求的文件"""
 
         video_path = os.path.join(self.video_root_path, request_body["videoDir"], request_body["videoName"])
-
-        head_info = to_bytes(
+        print("要下载的文件为：", video_path)
+        video_size = os.path.getsize(video_path)
+        header_info = to_bytes(
             command="download",
             code=SUCCESS_CODE,
-            msgSize=sys.getsizeof(video_path)
+            videoSize=video_size
         )
 
-        self._send_head_info(head_info)
+        print("发送文件下载头部信息：", header_info)
+
+        self._send_head_info(conn, header_info)
+
+        print("开始传输文件")
+
+        sent = 0
 
         try:
             with open(video_path, "rb") as f:
-                self.socket.sendall(f.read())
-        except Exception:
-            self._send_error_code()
+                conn.sendall(f.read())
 
-    def _send_error_code(self):
+        except Exception:
+            self._send_error_code(conn)
+
+    @staticmethod
+    def _send_error_code(conn: socket.socket):
         error_info = to_bytes(
             commend=FAIL_CODE
         )
-        self.socket.send(error_info)
+        conn.send(error_info)

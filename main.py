@@ -4,6 +4,7 @@ import socket
 import struct
 import time
 
+from exceptions import DisconnectionException
 from handler import ResponseHandler
 
 tcp_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -16,10 +17,11 @@ buffer_size = 1024
 # tcp_server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 tcp_server.bind(ip_port)
 tcp_server.listen(5)
-
+tcp_server.settimeout(None)
 anime_path = r"C:\Users\Administrator\Desktop\anime"
 
 # listener = ResponseHandler(tcp_server, anime_path)
+handler = ResponseHandler(anime_path)
 
 while True:
     '''链接循环'''
@@ -30,13 +32,21 @@ while True:
             print('客户端链接中断')
             break
         '''通信循环'''
-        conn = ResponseHandler(conn, anime_path)
-        # receive head_info_len
-        request = conn.socket.recv(4)
-        # make response
-        conn.distribute(request)
-        # head_len = struct.unpack('i', request)[0]
-        # head_info = json.loads(request.decode('utf-8'))
-        time.sleep(0.01)
 
-    time.sleep(0.01)
+        # receive head_info_len
+        try:
+            request = conn.recv(4)
+        except ConnectionResetError:
+            conn.close()
+            break
+
+        print("接收到request:", request)
+        if not request:
+            conn.close()
+            break
+
+        try:
+            handler.distribute(conn, request)
+        except DisconnectionException:
+            conn.close()
+            break
