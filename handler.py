@@ -24,14 +24,14 @@ class ResponseHandler:
         """
 
         head_len = struct.unpack('i', head_len)[0]
-        head_info = conn.recv(head_len)
-        if not head_info:
+        header_info = conn.recv(head_len)
+        if not header_info:
             raise DisconnectionException
 
-        head_info = json.loads(head_info.decode('utf-8'))
-        code = head_info["code"]
+        header_info = json.loads(header_info.decode('utf-8'))
+        code = header_info["code"]
 
-        request_body_len = head_info["msgSize"]
+        request_body_len = header_info["msgSize"]
         request_body = conn.recv(request_body_len)
         if not request_body:
             raise DisconnectionException
@@ -49,7 +49,7 @@ class ResponseHandler:
         else:
             return
 
-    def _dirs_info(self) -> [Dict, Dict]:
+    def _dirs_info(self) -> [Dict, bytes]:
 
         dirs = os.listdir(self.video_root_path)
 
@@ -72,12 +72,14 @@ class ResponseHandler:
 
                 response_body["dirs"].update(inner)
 
-        head_info = {
+        response_body = json.dumps(response_body).encode('utf-8')
+
+        header_info = {
             "dirNumbers": len(dirs),
-            "msgSize": sys.getsizeof(response_body)
+            "msgSize": len(response_body)
         }
 
-        return head_info, response_body
+        return header_info, response_body
 
     def dirs_info_response(self, conn: socket.socket, request_body: dict):
         """
@@ -87,16 +89,16 @@ class ResponseHandler:
         :return:
         """
 
-        head_info, response_body = self._dirs_info()
+        header_info, response_body = self._dirs_info()
 
-        head_info = json.dumps(head_info).encode("utf-8")
+        header_info = json.dumps(header_info).encode("utf-8")
 
-        if not head_info:
+        if not header_info:
             return
 
-        self._send_head_info(conn, head_info)
-        response_body = json.dumps(response_body).encode('utf-8')
-        print("发送response_body:", response_body)
+        self._send_header_info(conn, header_info)
+
+        print(f"发送response_body:{response_body}，长度为{len(response_body)}")
         conn.send(response_body)
 
     def _get_video_info(self, video_file_list: List[str]) -> dict:
@@ -144,18 +146,19 @@ class ResponseHandler:
         header_info = to_bytes(
             command="getVideos",
             code=GET_FILES_COMMAND,
-            msgSize=sys.getsizeof(response_body)
+            msgSize=len(response_body)
         )
 
-        self._send_head_info(conn, header_info)
+        self._send_header_info(conn, header_info)
         conn.send(response_body)
 
-    def _send_head_info(self, conn: socket.socket, head_info: bytes):
+    def _send_header_info(self, conn: socket.socket, head_info: bytes):
 
-        head_info_len = struct.pack("i", len(head_info))
-        conn.send(head_info_len)
+        header_info_len = struct.pack("i", len(head_info))
+        conn.send(header_info_len)
 
         try:
+            print(f"发送header:{head_info}长度为{len(head_info)}")
             conn.send(head_info)
         except Exception:
             self._send_error_code(conn)
@@ -174,7 +177,7 @@ class ResponseHandler:
 
         print("发送文件下载头部信息：", header_info)
 
-        self._send_head_info(conn, header_info)
+        self._send_header_info(conn, header_info)
 
         print("开始传输文件")
 
