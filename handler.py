@@ -181,10 +181,11 @@ class ResponseHandler:
 
         print("开始传输文件")
 
-        sent = 0
+        received = request_body.get("received", 0)
 
         try:
             with open(video_path, "rb") as f:
+                f.seek(received)
                 conn.sendall(f.read())
 
         except Exception:
