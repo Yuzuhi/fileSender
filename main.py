@@ -1,5 +1,5 @@
+import os
 import socket
-
 from common.logger import logger
 from common.exceptions import DisconnectionException
 from core.handler import ResponseHandler
@@ -13,7 +13,8 @@ buffer_size = 1024
 # tcp_server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 tcp_server.bind(ip_port)
 tcp_server.listen(5)
-anime_path = r"C:\Users\Administrator\Desktop\anime"
+# 桌面上的anime文件夹
+anime_path = os.path.join(os.path.join(os.path.expanduser("~"), "Desktop"), "anime")
 
 handler = ResponseHandler(anime_path)
 
@@ -34,6 +35,10 @@ while True:
             logger.error(f"来自{addr}的用户发生错误中断了访问", ConnectionResetError)
             conn.close()
             break
+        except TimeoutError:
+            logger.error(f"来自{addr}的用户长时间没有应答", TimeoutError)
+            conn.close()
+            break
 
         print("接收到request:", request)
         if not request:
@@ -45,4 +50,8 @@ while True:
         except DisconnectionException:
             conn.close()
             logger.error(f"来自{addr}的用户发生错误中断了访问", DisconnectionException)
+            break
+        except UnicodeDecodeError:
+            conn.close()
+            logger.error(f"来自{addr}的用户请求错误，请求内容为：{request}")
             break

@@ -3,10 +3,9 @@ import os
 import json
 import struct
 from typing import Dict, List
-
-from constant import *
 from common.exceptions import DisconnectionException
 from common.utils import to_bytes
+from .constant import *
 
 
 class ResponseHandler:
@@ -168,17 +167,14 @@ class ResponseHandler:
         video_path = os.path.join(self.video_root_path, request_body["videoDir"], request_body["videoName"])
         print("要下载的文件为：", video_path)
         video_size = os.path.getsize(video_path)
+
         header_info = to_bytes(
             command="download",
             code=SUCCESS_CODE,
             videoSize=video_size
         )
 
-        print("发送文件下载头部信息：", header_info)
-
         self._send_header_info(conn, header_info)
-
-        print("开始传输文件")
 
         received = request_body.get("received", 0)
 
@@ -186,7 +182,6 @@ class ResponseHandler:
             with open(video_path, "rb") as f:
                 f.seek(received)
                 conn.sendall(f.read())
-
         except Exception:
             self._send_error_code(conn)
 
