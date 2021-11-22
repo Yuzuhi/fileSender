@@ -3,6 +3,8 @@ import os
 import json
 import struct
 from typing import Dict, List
+
+from common.logger import logger
 from common.exceptions import DisconnectionException
 from common.utils import to_bytes
 from .constant import *
@@ -182,6 +184,7 @@ class ResponseHandler:
             with open(video_path, "rb") as f:
                 f.seek(received)
                 conn.sendall(f.read())
+            logger.info(f"向{conn.getsockname()}发送的{video_path}已发送完成")
         except Exception:
             self._send_error_code(conn)
 
