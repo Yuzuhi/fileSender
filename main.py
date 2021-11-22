@@ -55,3 +55,7 @@ while True:
             conn.close()
             logger.error(f"来自{addr}的用户请求错误，请求内容为：{request}")
             break
+        except TimeoutError:
+            logger.error(f"来自{addr}的用户长时间没有应答", TimeoutError)
+            conn.close()
+            break

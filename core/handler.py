@@ -179,14 +179,18 @@ class ResponseHandler:
         self._send_header_info(conn, header_info)
 
         received = request_body.get("received", 0)
+        # 设置session超时时间
+        conn.settimeout(10)
 
         try:
             with open(video_path, "rb") as f:
                 f.seek(received)
                 conn.sendall(f.read())
-            logger.info(f"向{conn.getsockname()}发送的{video_path}已发送完成")
+            logger.info(f"向{conn.getpeername()}发送的{video_path}已发送完成")
         except Exception:
             self._send_error_code(conn)
+
+        conn.settimeout(None)
 
     @staticmethod
     def _send_error_code(conn: socket.socket):
