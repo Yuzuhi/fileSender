@@ -1,11 +1,8 @@
-import json
-import os
 import socket
-import struct
-import time
 
-from exceptions import DisconnectionException
-from handler import ResponseHandler
+from common.logger import logger
+from common.exceptions import DisconnectionException
+from core.handler import ResponseHandler
 
 tcp_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 ip = socket.gethostbyname(socket.gethostname())
@@ -18,16 +15,15 @@ tcp_server.bind(ip_port)
 tcp_server.listen(5)
 anime_path = r"C:\Users\Administrator\Desktop\anime"
 
-# listener = ResponseHandler(tcp_server, anime_path)
 handler = ResponseHandler(anime_path)
 
 while True:
     '''链接循环'''
     conn, addr = tcp_server.accept()
-    print('链接人的信息:', addr)
+    logger.info(f"来自{addr}的用户链接了服务器")
     while True:
         if not conn:
-            print('客户端链接中断')
+            logger.info(f"来自{addr}的用户中断了访问")
             break
         '''通信循环'''
 
@@ -35,6 +31,7 @@ while True:
         try:
             request = conn.recv(4)
         except ConnectionResetError:
+            logger.error(f"来自{addr}的用户发生错误中断了访问", ConnectionResetError)
             conn.close()
             break
 
@@ -47,4 +44,5 @@ while True:
             handler.distribute(conn, request)
         except DisconnectionException:
             conn.close()
+            logger.error(f"来自{addr}的用户发生错误中断了访问", DisconnectionException)
             break
