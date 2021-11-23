@@ -1,5 +1,7 @@
 import os
 import socket
+from json import JSONDecodeError
+
 from common.logger import logger
 from common.exceptions import DisconnectionException
 from core.handler import ResponseHandler
@@ -51,7 +53,7 @@ while True:
             conn.close()
             logger.error(f"来自{addr}的用户发生错误中断了访问", DisconnectionException)
             break
-        except UnicodeDecodeError:
+        except JSONDecodeError:
             conn.close()
             logger.error(f"来自{addr}的用户请求错误，请求内容为：{request}")
             break
@@ -59,3 +61,4 @@ while True:
             logger.error(f"来自{addr}的用户长时间没有应答", TimeoutError)
             conn.close()
             break
+
