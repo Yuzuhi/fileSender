@@ -187,10 +187,9 @@ class ResponseHandler:
                 f.seek(received)
                 conn.sendall(f.read())
             logger.info(f"向{conn.getpeername()}发送的{video_path}已发送完成")
-        except Exception:
-            self._send_error_code(conn)
-
-        conn.settimeout(None)
+            conn.settimeout(None)
+        except Exception as e:
+            raise e
 
     @staticmethod
     def _send_error_code(conn: socket.socket):
