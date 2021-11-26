@@ -98,7 +98,7 @@ class ResponseHandler:
 
         self._send_header_info(conn, header_info)
 
-        print(f"发送response_body:{response_body}，长度为{len(response_body)}")
+        print(f"send dir,response:{response_body}")
         conn.send(response_body)
 
     def _get_video_info(self, video_file_list: List[str]) -> dict:
@@ -150,21 +150,23 @@ class ResponseHandler:
         )
 
         self._send_header_info(conn, header_info)
+        print(f"send video info,response:{response_body}")
         conn.send(response_body)
 
-    def _send_header_info(self, conn: socket.socket, head_info: bytes):
+    @staticmethod
+    def _send_header_info(conn: socket.socket, header_info: bytes):
 
-        header_info_len = struct.pack("i", len(head_info))
+        header_info_len = struct.pack("i", len(header_info))
+        print(f"send header message length,length:{header_info_len}")
         conn.send(header_info_len)
-        print(f"发送header:{head_info}长度为{len(head_info)}")
-        conn.send(head_info)
-
+        print(f"send header message,message:{header_info}")
+        conn.send(header_info)
+        print(f"header_info {header_info} has been sent")
 
     def send_video_response(self, conn: socket.socket, request_body: dict):
         """发送客户端所请求的文件"""
 
         video_path = os.path.join(self.video_root_path, request_body["videoDir"], request_body["videoName"])
-        print("要下载的文件为：", video_path)
         video_size = os.path.getsize(video_path)
 
         header_info = to_bytes(
@@ -178,12 +180,12 @@ class ResponseHandler:
         received = request_body.get("received", 0)
         # 设置session超时时间
         conn.settimeout(10)
-
+        print(f"send videos:{video_path}")
         try:
             with open(video_path, "rb") as f:
                 f.seek(received)
                 conn.sendall(f.read())
-            logger.info(f"向{conn.getpeername()}发送的{video_path}已发送完成")
+            logger.info(f"videos {video_path} which been sent to {conn.getpeername()} has been completed")
             conn.settimeout(None)
         except Exception as e:
             raise e

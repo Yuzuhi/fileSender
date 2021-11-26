@@ -1,6 +1,6 @@
 import os
 import socket
-from json import JSONDecodeError
+import json
 
 from common.logger import logger
 from common.exceptions import DisconnectionException
@@ -57,8 +57,15 @@ while True:
             conn.close()
             logger.error(f"来自{addr}的用户请求错误，请求内容为：{request}\n错误为{e}")
             break
+        except json.decoder.JSONDecodeError as e:
+            conn.close()
+            logger.error(f"来自{addr}的用户请求错误，请求内容为：{request}\n错误为{e}")
+            break
         except TimeoutError:
             logger.error(f"来自{addr}的用户长时间没有应答", TimeoutError)
             conn.close()
             break
-
+        except Exception as e:
+            logger.error(f"来自{addr}的用户连接时发生错误,请求内容为：{request}\n错误为{e}")
+            conn.close()
+            break
