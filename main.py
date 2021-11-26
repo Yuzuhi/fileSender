@@ -53,9 +53,9 @@ while True:
             conn.close()
             logger.error(f"来自{addr}的用户发生错误中断了访问", DisconnectionException)
             break
-        except JSONDecodeError:
+        except UnicodeDecodeError as e:
             conn.close()
-            logger.error(f"来自{addr}的用户请求错误，请求内容为：{request}")
+            logger.error(f"来自{addr}的用户请求错误，请求内容为：{request}\n错误为{e}")
             break
         except TimeoutError:
             logger.error(f"来自{addr}的用户长时间没有应答", TimeoutError)

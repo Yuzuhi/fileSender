@@ -156,12 +156,9 @@ class ResponseHandler:
 
         header_info_len = struct.pack("i", len(head_info))
         conn.send(header_info_len)
+        print(f"发送header:{head_info}长度为{len(head_info)}")
+        conn.send(head_info)
 
-        try:
-            print(f"发送header:{head_info}长度为{len(head_info)}")
-            conn.send(head_info)
-        except Exception:
-            self._send_error_code(conn)
 
     def send_video_response(self, conn: socket.socket, request_body: dict):
         """发送客户端所请求的文件"""
