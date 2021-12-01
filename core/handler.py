@@ -6,7 +6,9 @@ from typing import Dict, List
 
 from common.logger import logger
 from common.exceptions import DisconnectionException
+from common.parser import Config
 from common.utils import to_bytes
+from main import NewPatchPath
 from .constant import *
 
 
@@ -45,7 +47,9 @@ class ResponseHandler:
             self.video_info_response(conn, request_body)
 
         elif code == DOWNLOAD_COMMAND:
-            self.send_video_response(conn, request_body)
+            self.download_response(conn, request_body)
+        elif code == CHECK_UPDATE_COMMAND:
+            self.check_update_response(conn, request_body)
         else:
             return
 
@@ -150,7 +154,7 @@ class ResponseHandler:
         )
 
         self._send_header_info(conn, header_info)
-        print(f"send video info,response:{response_body}")
+        print(f"send video info,response:{response_body.decode('utf-8')}")
         conn.send(response_body)
 
     @staticmethod
@@ -163,7 +167,7 @@ class ResponseHandler:
         conn.send(header_info)
         print(f"header_info {header_info} has been sent")
 
-    def send_video_response(self, conn: socket.socket, request_body: dict):
+    def download_response(self, conn: socket.socket, request_body: dict):
         """发送客户端所请求的文件"""
 
         video_path = os.path.join(self.video_root_path, request_body["videoDir"], request_body["videoName"])
@@ -190,9 +194,27 @@ class ResponseHandler:
         except Exception as e:
             raise e
 
-    @staticmethod
-    def _send_error_code(conn: socket.socket):
-        error_info = to_bytes(
-            commend=FAIL_CODE
+    def check_update_response(self, conn: socket.socket, request_body: dict):
+        files = os.listdir(NewPatchPath)
+
+        version = ""
+
+        if len(files) >= 2:
+            for file in files:
+                if file == CONFIG_FILE:
+                    version = Config.get("project").get("version")
+
+        response_body = to_bytes(
+            command="version",
+            version=version
         )
-        conn.send(error_info)
+
+        header_info = to_bytes(
+            command="version",
+            code=SUCCESS_CODE,
+            msgSize=len(response_body)
+        )
+
+        self._send_header_info(conn, header_info)
+        print(f"send update information,response:{response_body.decode('utf-8')}")
+        conn.send(response_body)

@@ -16,9 +16,10 @@ buffer_size = 1024
 tcp_server.bind(ip_port)
 tcp_server.listen(5)
 # 桌面上的anime文件夹
-anime_path = os.path.join(os.path.join(os.path.expanduser("~"), "Desktop"), "anime")
+AnimePath = os.path.join(os.path.join(os.path.expanduser("~"), "Desktop"), "anime")
+NewPatchPath = os.path.join(AnimePath, "NewPatch")
 
-handler = ResponseHandler(anime_path)
+handler = ResponseHandler(AnimePath)
 
 while True:
     '''链接循环'''
