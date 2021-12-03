@@ -4,11 +4,12 @@ import json
 import struct
 from typing import Dict, List
 
+
 from common.logger import logger
 from common.exceptions import DisconnectionException
-from common.parser import Config
-from common.utils import to_bytes
-from main import NewPatchPath
+from common.utils.parser import Config
+from common.utils.utils import to_bytes
+from settings import settings
 from .constant import *
 
 
@@ -50,6 +51,8 @@ class ResponseHandler:
             self.download_response(conn, request_body)
         elif code == CHECK_UPDATE_COMMAND:
             self.check_update_response(conn, request_body)
+        elif code == CHECK_HOST_COMMAND:
+            self.check_host(conn, request_body)
         else:
             return
 
@@ -124,10 +127,17 @@ class ResponseHandler:
             for _, _, files in os.walk(video_file):
                 dirs[video_dir]["videoNumber"] = len(files)
                 for file in files:
-                    dirs[video_dir][file] = {
-                        "videoName": file,
-                        "videoImage": ""
-                    }
+
+                    for suffix in VIDEO_FORMAT:
+                        if not file.endswith(suffix):
+                            continue
+
+                        dirs[video_dir][file] = {
+                            "videoName": file,
+                            "videoImage": ""
+                        }
+
+                        break
 
         response_body["dirs"] = dirs
 
@@ -159,7 +169,6 @@ class ResponseHandler:
 
     @staticmethod
     def _send_header_info(conn: socket.socket, header_info: bytes):
-
         header_info_len = struct.pack("i", len(header_info))
         print(f"send header message length,length:{header_info_len}")
         conn.send(header_info_len)
@@ -171,6 +180,7 @@ class ResponseHandler:
         """发送客户端所请求的文件"""
 
         video_path = os.path.join(self.video_root_path, request_body["videoDir"], request_body["videoName"])
+        print("ready to download：", video_path)
         video_size = os.path.getsize(video_path)
 
         header_info = to_bytes(
@@ -195,7 +205,7 @@ class ResponseHandler:
             raise e
 
     def check_update_response(self, conn: socket.socket, request_body: dict):
-        files = os.listdir(NewPatchPath)
+        files = os.listdir(settings.NewPatchPath)
 
         version = ""
 
@@ -211,6 +221,34 @@ class ResponseHandler:
 
         header_info = to_bytes(
             command="version",
+            code=SUCCESS_CODE,
+            msgSize=len(response_body)
+        )
+
+        self._send_header_info(conn, header_info)
+        print(f"send update information,response:{response_body.decode('utf-8')}")
+        conn.send(response_body)
+
+    def check_host(self, conn: socket.socket, request_body: dict):
+        files = os.listdir(settings.NewPatchPath)
+
+        ip = ""
+        port = 0
+
+        try:
+            ip = Config.get("server").get("host")
+            port = int(Config.get("server").get("port"))
+        except Exception:
+            pass
+
+        response_body = to_bytes(
+            command="host",
+            ip=ip,
+            port=port
+        )
+
+        header_info = to_bytes(
+            command="host",
             code=SUCCESS_CODE,
             msgSize=len(response_body)
         )

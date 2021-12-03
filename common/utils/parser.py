@@ -1,9 +1,10 @@
 import os
 import re
+from pathlib import Path
 from typing import List, Dict
 
 # ini配置文件解析器
-from src.settings import settings, RootPath
+from settings import settings
 
 
 class IniParser:
@@ -68,11 +69,5 @@ class IniParser:
         self.paramList = []
 
 
-if settings.Debug:
-    ini_file_path = os.path.join(RootPath, "config.ini")
-else:
-    ini_file = os.getcwd()
-    ini_file_path = os.path.join(ini_file, "config.ini")
-
-parser = IniParser(ini_file_path)
+parser = IniParser(settings.ClientConfigPath)
 Config = parser.load()
